@@ -34,14 +34,16 @@
   <div class="col">
     <div class="tabs-in">
       <nav class="tabs" role="tablist" aria-label="Secciones">
-        <a class="tab" role="tab" href="#todo" data-view="todo" aria-selected="true">Todo</a>
-        <a class="tab" role="tab" href="#blog" data-view="blog" aria-selected="false">Blog</a>
-        <a class="tab" role="tab" href="#instagram" data-view="instagram" aria-selected="false">Instagram</a>
-        <a class="tab" role="tab" href="#tiktok" data-view="tiktok" aria-selected="false">TikTok</a>
-        <a class="tab" role="tab" href="#actividad" data-view="actividad" aria-selected="false">Actividad</a>
-        <a class="tab" role="tab" href="#sobre-mi" data-view="sobre-mi" aria-selected="false">Sobre mí</a>
+        <div class="track">
+        <a class="tab" role="tab" href="#todo" data-view="todo" data-caption="Todo lo que publico, de lo más nuevo a lo más antiguo" aria-selected="true">Todo</a>
+        <a class="tab" role="tab" href="#blog" data-view="blog" data-caption="Lo que no cabe en un video" aria-selected="false">Blog</a>
+        <a class="tab" role="tab" href="#instagram" data-view="instagram" data-caption="Mis publicaciones, en un solo lugar" aria-selected="false">Instagram</a>
+        <a class="tab" role="tab" href="#tiktok" data-view="tiktok" data-caption="Mis videos, en un solo lugar" aria-selected="false">TikTok</a>
+        <a class="tab" role="tab" href="#actividad" data-view="actividad" data-caption="Lo más reciente, ordenado por fecha" aria-selected="false">Actividad</a>
+        <a class="tab" role="tab" href="#sobre-mi" data-view="sobre-mi" data-caption="Rigor técnico, lenguaje claro" aria-selected="false">Sobre mí</a>
+        </div>
       </nav>
-      <p class="hint">Lo que no cabe en un video</p>
+      <p class="hint" id="hint" aria-live="polite">Todo lo que publico, de lo más nuevo a lo más antiguo</p>
     </div>
   </div>
 </div>
@@ -52,32 +54,24 @@
   </section>
 
   <section class="view" id="v-blog" role="tabpanel" aria-label="Blog" hidden>
-    <p class="eyebrow view-head">Blog</p>
-    <p class="view-lead">Escritos largos, con el tiempo que merecen.</p>
     <div class="feed" id="posts"></div>
   </section>
 
   <section class="view" id="v-instagram" role="tabpanel" aria-label="Instagram" hidden>
-    <p class="eyebrow view-head">Instagram</p>
-    <p class="view-lead">Mis publicaciones, en un solo lugar. <a class="link" id="ig-follow" href="#" target="_blank" rel="noopener noreferrer" hidden></a></p>
+    <a class="link follow-link" id="ig-follow" href="#" target="_blank" rel="noopener noreferrer" hidden></a>
     <div class="grid" id="grid-instagram"></div>
   </section>
 
   <section class="view" id="v-tiktok" role="tabpanel" aria-label="TikTok" hidden>
-    <p class="eyebrow view-head">TikTok</p>
-    <p class="view-lead">Mis videos, en un solo lugar. <a class="link" id="tt-follow" href="#" target="_blank" rel="noopener noreferrer" hidden></a></p>
+    <a class="link follow-link" id="tt-follow" href="#" target="_blank" rel="noopener noreferrer" hidden></a>
     <div class="grid" id="grid-tiktok"></div>
   </section>
 
   <section class="view" id="v-actividad" role="tabpanel" aria-label="Actividad" hidden>
-    <p class="eyebrow view-head">Actividad</p>
-    <p class="view-lead">Lo más reciente, de lo más nuevo a lo más antiguo.</p>
     <div id="activity"></div>
   </section>
 
   <section class="view" id="v-sobre-mi" role="tabpanel" aria-label="Sobre mí" hidden>
-    <p class="eyebrow view-head">Sobre mí</p>
-    <p class="view-lead">Rigor técnico, lenguaje claro.</p>
     <div class="prose">
       <p>Soy abogado y ejerzo en Ecuador. Me interesa entender a fondo la norma, el precedente y el problema real de cada persona antes de opinar.</p>
       <p>Estudio y comento decisiones judiciales, y las convierto en contenido para quien no es abogado. Este sitio reúne todo eso en un solo lugar.</p>

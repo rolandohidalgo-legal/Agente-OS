@@ -74,14 +74,21 @@ a.label:hover { color: var(--accent); }
 .tabs-sentinel { height: 1px; margin-top: -1px; }
 .tabs-bar { position: sticky; top: 0; z-index: 20; padding-top: env(safe-area-inset-top, 0px); background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 .tabs-in { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding-block: 30px 30px; transition: padding .35s var(--ease), border-color .35s; }
-.tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding-block: 2px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 34px, #000 calc(100% - 34px), transparent); mask-image: linear-gradient(90deg, transparent, #000 34px, #000 calc(100% - 34px), transparent); }
+.tabs { position: relative; overflow-x: auto; scrollbar-width: none; padding-block: 2px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 34px, #000 calc(100% - 34px), transparent); mask-image: linear-gradient(90deg, transparent, #000 34px, #000 calc(100% - 34px), transparent); }
 .tabs::-webkit-scrollbar { display: none; }
 .tab { flex: none; font-family: var(--sans); font-weight: 600; font-size: .95rem; padding: 9px 18px; border-radius: 999px; color: var(--tan); white-space: nowrap; transition: color .2s, background .25s var(--ease); }
-.tab:first-child { margin-left: auto; }
-.tab:last-child { margin-right: auto; }
+.track { display: flex; gap: 4px; width: max-content; }
+.track::before, .track::after { content: ""; flex: 0 0 calc(var(--tabs-w, 600px) / 2); }
+/* Rueda (escritorio con mouse): cada opción ocupa una zona fija y la pista gira para centrar la que está bajo el puntero */
+.tabs.wheel { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent); }
+.tabs.wheel .track { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; width: 100%; padding-inline: 24px; transition: transform .55s var(--ease); }
+.tabs.wheel .track::before, .tabs.wheel .track::after { display: none; }
+.tabs.wheel .tab { justify-self: center; }
+.tab.peek { color: var(--ink); background: color-mix(in srgb, var(--pill) 50%, transparent); }
 .tab:hover { color: var(--ink); }
 .tab[aria-selected="true"] { background: var(--pill); color: var(--accent); }
-.hint { font-family: var(--sans); font-size: .68rem; letter-spacing: .22em; text-transform: uppercase; color: var(--tan); text-align: center; margin: 16px 0 0; max-height: 24px; overflow: hidden; transition: max-height .35s var(--ease), margin .35s var(--ease), opacity .25s; }
+.hint { font-family: var(--sans); font-size: .68rem; letter-spacing: .22em; text-transform: uppercase; color: var(--tan); text-align: center; margin: 16px 0 0; max-height: 24px; overflow: hidden; transition: max-height .35s var(--ease), margin .35s var(--ease), opacity .18s; }
+.hint.swap { opacity: 0; }
 .tabs-bar.stuck .tabs-in { padding-block: 8px; border-top-color: transparent; }
 .tabs-bar.stuck .hint { max-height: 0; margin-top: 0; opacity: 0; }
 
@@ -92,13 +99,14 @@ a.label:hover { color: var(--accent); }
 @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .view.show .item, .view.show .tile, .view.show .row { animation: rise .6s var(--ease) both; animation-delay: calc(var(--i, 0) * 55ms); }
 @keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
-.view-head { margin: 0 0 6px; }
-.view-lead { font-style: italic; color: var(--muted); margin: 0 0 22px; font-size: 1.08rem; }
 .empty { padding: 22px; border: 1px dashed var(--rule); border-radius: 12px; color: var(--muted); font-style: italic; margin: 0; }
 
 .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 0 0 8px; font-family: var(--sans); font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; color: var(--tan); }
 .meta .kind { color: var(--accent); font-weight: 600; }
 .chip { font-family: var(--sans); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; color: var(--tan); }
+
+/* enlace para seguir en cada red */
+.follow-link:not([hidden]) { display: inline-block; margin: 0 0 22px; font-family: var(--sans); font-size: .95rem; }
 
 /* feed: entradas del blog y publicaciones */
 .feed { display: flex; flex-direction: column; }

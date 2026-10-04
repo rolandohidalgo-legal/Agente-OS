@@ -51,27 +51,115 @@
 
   SOURCES[0].icon = IG_ICON;
 
-  // Pestañas: cada píldora muestra una vista; la URL (#blog, #instagram…) la recuerda
+  // Pestañas en forma de rueda. Con el puntero encima, la píldora se centra y su descripción
+  // aparece abajo (vista previa); el contenido solo cambia al hacer clic. La URL (#blog, #instagram…)
+  // recuerda la sección elegida.
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  var tabsEl = $('.tabs'), trackEl = $('.track'), hint = $('#hint');
   var views = {};
   tabs.forEach(function (t) { views[t.dataset.view] = document.getElementById('v-' + t.dataset.view); });
-  var current = null;
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var PAD = 24;
+  var current = null, selected = tabs[0], peekTab = null, leaveT = null, hoverMouse = false, capT = null, wheel = false;
   var sentinel = $('#tabs-sentinel'), tbar = $('#tabs-bar');
+
   // Al bajar, la barra se compacta: se oculta la leyenda y se afinan los márgenes
   if ('IntersectionObserver' in window) {
     new IntersectionObserver(function (e) {
       tbar.classList.toggle('stuck', !e[0].isIntersecting && e[0].boundingClientRect.top < 0);
     }).observe(sentinel);
   }
+
+  // Rueda: solo con mouse y cuando todas las opciones caben en la barra.
+  // En pantallas táctiles o angostas la barra se desliza con el dedo.
+  function slotW() { return (tabsEl.clientWidth - PAD * 2) / tabs.length; }
+  function setMode() {
+    tabsEl.style.setProperty('--tabs-w', tabsEl.clientWidth + 'px');
+    var w = matchMedia('(hover: hover) and (pointer: fine)').matches && slotW() >= 100;
+    wheel = w;
+    tabsEl.classList.toggle('wheel', w);
+    trackEl.style.transform = '';
+    tabsEl.scrollLeft = 0;
+  }
+  // Coloca la pista para que la píldora dada quede al centro (o en reposo si no hay ninguna)
+  function align(t, instant) {
+    if (wheel) {
+      if (!t) { trackEl.style.transform = ''; return; }
+      var c = PAD + (tabs.indexOf(t) + 0.5) * slotW();
+      trackEl.style.transform = 'translateX(' + (tabsEl.clientWidth / 2 - c) + 'px)';
+    } else if (t) {
+      var left = t.offsetLeft + t.offsetWidth / 2 - tabsEl.clientWidth / 2;
+      tabsEl.scrollTo({ left: left, behavior: (instant || reduced) ? 'auto' : 'smooth' });
+    }
+  }
+  function setCaption(text) {
+    if (!hint || hint.textContent === text) return;
+    clearTimeout(capT);
+    hint.classList.add('swap');
+    capT = setTimeout(function () { hint.textContent = text; hint.classList.remove('swap'); }, reduced ? 0 : 140);
+  }
+  function markPeek() { tabs.forEach(function (x) { x.classList.toggle('peek', x === peekTab && x !== selected); }); }
+  function peek(t, center) {
+    peekTab = t; markPeek();
+    setCaption(t.dataset.caption);
+    if (center) align(t);
+  }
+  function rest() {
+    peekTab = null; markPeek();
+    setCaption(selected.dataset.caption);
+    align(wheel ? null : selected);
+  }
+
+  tabsEl.addEventListener('pointerenter', function (e) {
+    if (e.pointerType !== 'mouse') return;
+    hoverMouse = true; clearTimeout(leaveT);
+  });
+  tabsEl.addEventListener('pointermove', function (e) {
+    if (e.pointerType !== 'mouse') return;
+    var t;
+    if (wheel) {
+      var r = tabsEl.getBoundingClientRect();
+      var i = Math.floor((e.clientX - r.left - PAD) / slotW());
+      t = tabs[Math.max(0, Math.min(tabs.length - 1, i))];
+    } else {
+      t = e.target.closest ? e.target.closest('.tab') : null;
+    }
+    if (t && t !== peekTab) peek(t, wheel);
+  });
+  tabsEl.addEventListener('pointerleave', function (e) {
+    if (e.pointerType !== 'mouse') return;
+    hoverMouse = false;
+    leaveT = setTimeout(rest, 160);
+  });
+  tabsEl.addEventListener('focusin', function (e) {
+    if (e.target.matches && e.target.matches(':focus-visible')) peek(e.target, true);
+  });
+  tabsEl.addEventListener('focusout', function (e) {
+    if (!tabsEl.contains(e.relatedTarget)) rest();
+  });
+  tabsEl.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('.tab') : null;
+    // En la rueda, el clic confirma la opción que está en vista previa, aunque la píldora ya no esté bajo el puntero
+    var t = (hoverMouse && wheel && peekTab) ? peekTab : a;
+    if (!t) return;
+    e.preventDefault();
+    if (location.hash === '#' + t.dataset.view) { show(t.dataset.view, true); return; }
+    location.hash = t.dataset.view;
+  });
+  window.addEventListener('resize', function () { setMode(); align(wheel ? peekTab : (peekTab || selected), true); });
+
   function show(id, scroll) {
     if (!views[id]) id = 'todo';
-    if (id === current) return;
+    if (id === current) { if (scroll) toBar(); return; }
     current = id;
     tabs.forEach(function (t) {
       var on = t.dataset.view === id;
       t.setAttribute('aria-selected', on ? 'true' : 'false');
-      if (on) t.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+      if (on) selected = t;
     });
+    markPeek();
+    setCaption((peekTab || selected).dataset.caption);
+    align(wheel ? peekTab : (peekTab || selected), !scroll);
     Object.keys(views).forEach(function (k) {
       var v = views[k]; if (!v) return;
       var on = k === id;
@@ -79,14 +167,19 @@
       v.classList.remove('show');
       if (on) { void v.offsetWidth; v.classList.add('show'); }
     });
-    if (scroll) {
-      var start = sentinel.getBoundingClientRect().top + window.scrollY;
-      if (window.scrollY > start) window.scrollTo({ top: start, behavior: 'smooth' });
-    }
+    if (scroll) toBar();
+  }
+  function toBar() {
+    var start = sentinel.getBoundingClientRect().top + window.scrollY;
+    if (window.scrollY > start) window.scrollTo({ top: start, behavior: 'smooth' });
   }
   function fromHash() { return decodeURIComponent(location.hash.slice(1)) || 'todo'; }
   window.addEventListener('hashchange', function () { show(fromHash(), true); });
+  setMode();
   show(fromHash(), false);
+  if (hint) hint.textContent = selected.dataset.caption;
+  align(wheel ? null : selected, true);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { setMode(); align(wheel ? peekTab : (peekTab || selected), true); });
 
   Promise.all([getJSON('data/site.json'), getJSON('data/activity.json'), getJSON('blog/posts.json')].concat(SOURCES.map(function (src) { return getJSON(src.file); })))
     .then(function (r) {
