@@ -56,6 +56,13 @@
   var views = {};
   tabs.forEach(function (t) { views[t.dataset.view] = document.getElementById('v-' + t.dataset.view); });
   var current = null;
+  var sentinel = $('#tabs-sentinel'), tbar = $('#tabs-bar');
+  // Al bajar, la barra se compacta: se oculta la leyenda y se afinan los márgenes
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (e) {
+      tbar.classList.toggle('stuck', !e[0].isIntersecting && e[0].boundingClientRect.top < 0);
+    }).observe(sentinel);
+  }
   function show(id, scroll) {
     if (!views[id]) id = 'todo';
     if (id === current) return;
@@ -73,9 +80,8 @@
       if (on) { void v.offsetWidth; v.classList.add('show'); }
     });
     if (scroll) {
-      var bar = $('.tabs-bar'), top = bar.getBoundingClientRect().top + window.scrollY - bar.offsetHeight + 4;
-      var hero = $('.hero').getBoundingClientRect().bottom + window.scrollY;
-      if (window.scrollY > hero) window.scrollTo({ top: Math.max(0, hero - 1), behavior: 'smooth' });
+      var start = sentinel.getBoundingClientRect().top + window.scrollY;
+      if (window.scrollY > start) window.scrollTo({ top: start, behavior: 'smooth' });
     }
   }
   function fromHash() { return decodeURIComponent(location.hash.slice(1)) || 'todo'; }

@@ -29,17 +29,20 @@
   </header>
 </div>
 
-<div class="tabs-bar">
+<div class="tabs-sentinel" id="tabs-sentinel" aria-hidden="true"></div>
+<div class="tabs-bar" id="tabs-bar">
   <div class="col">
-    <nav class="tabs" role="tablist" aria-label="Secciones">
-      <a class="tab" role="tab" href="#todo" data-view="todo" aria-selected="true">Todo</a>
-      <a class="tab" role="tab" href="#blog" data-view="blog" aria-selected="false">Blog</a>
-      <a class="tab" role="tab" href="#instagram" data-view="instagram" aria-selected="false">Instagram</a>
-      <a class="tab" role="tab" href="#tiktok" data-view="tiktok" aria-selected="false">TikTok</a>
-      <a class="tab" role="tab" href="#actividad" data-view="actividad" aria-selected="false">Actividad</a>
-      <a class="tab" role="tab" href="#sobre-mi" data-view="sobre-mi" aria-selected="false">Sobre mí</a>
-    </nav>
-    <p class="hint">Desliza para elegir sección</p>
+    <div class="tabs-in">
+      <nav class="tabs" role="tablist" aria-label="Secciones">
+        <a class="tab" role="tab" href="#todo" data-view="todo" aria-selected="true">Todo</a>
+        <a class="tab" role="tab" href="#blog" data-view="blog" aria-selected="false">Blog</a>
+        <a class="tab" role="tab" href="#instagram" data-view="instagram" aria-selected="false">Instagram</a>
+        <a class="tab" role="tab" href="#tiktok" data-view="tiktok" aria-selected="false">TikTok</a>
+        <a class="tab" role="tab" href="#actividad" data-view="actividad" aria-selected="false">Actividad</a>
+        <a class="tab" role="tab" href="#sobre-mi" data-view="sobre-mi" aria-selected="false">Sobre mí</a>
+      </nav>
+      <p class="hint">Lo que no cabe en un video</p>
+    </div>
   </div>
 </div>
 
@@ -50,7 +53,7 @@
 
   <section class="view" id="v-blog" role="tabpanel" aria-label="Blog" hidden>
     <p class="eyebrow view-head">Blog</p>
-    <p class="view-lead">Lo que no cabe en un video.</p>
+    <p class="view-lead">Escritos largos, con el tiempo que merecen.</p>
     <div class="feed" id="posts"></div>
   </section>
 
