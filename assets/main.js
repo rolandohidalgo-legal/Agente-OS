@@ -42,7 +42,14 @@
   var all = $('#all');
   if (!all) return;
 
+  var TT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 3v11.2a3.7 3.7 0 1 1-3.7-3.7"/><path d="M14.5 3c.3 2.4 1.9 4.2 4.5 4.4"/></svg>';
+  var SOURCES = [
+    { key: 'instagram', label: 'Instagram', file: 'data/instagram.json', icon: null, grid: '#grid-instagram', follow: '#ig-follow', profile: function (h) { return 'https://www.instagram.com/' + h + '/'; } },
+    { key: 'tiktok', label: 'TikTok', file: 'data/tiktok.json', icon: TT_ICON, grid: '#grid-tiktok', follow: '#tt-follow', profile: function (h) { return 'https://www.tiktok.com/@' + h; } }
+  ];
   var IG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>';
+
+  SOURCES[0].icon = IG_ICON;
 
   // Pestañas: cada píldora muestra una vista; la URL (#blog, #instagram…) la recuerda
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
@@ -75,25 +82,37 @@
   window.addEventListener('hashchange', function () { show(fromHash(), true); });
   show(fromHash(), false);
 
-  Promise.all([getJSON('data/site.json'), getJSON('data/instagram.json'), getJSON('data/activity.json'), getJSON('blog/posts.json')])
+  Promise.all([getJSON('data/site.json'), getJSON('data/activity.json'), getJSON('blog/posts.json')].concat(SOURCES.map(function (src) { return getJSON(src.file); })))
     .then(function (r) {
-      var site = r[0] || {}, ig = r[1] || [], act = r[2] || [], posts = (r[3] || []).filter(function (p) { return /^[a-z0-9-]+$/.test(p.slug || ''); });
-      [ig, act, posts].forEach(function (a) { a.sort(function (x, y) { return String(y.date).localeCompare(String(x.date)); }); });
+      var site = r[0] || {}, act = r[1] || [], posts = (r[2] || []).filter(function (p) { return /^[a-z0-9-]+$/.test(p.slug || ''); });
+      var byDate = function (a) { a.sort(function (x, y) { return String(y.date).localeCompare(String(x.date)); }); };
+      byDate(act); byDate(posts);
+      var social = [];
+      SOURCES.forEach(function (src, i) {
+        var list = r[3 + i] || []; byDate(list);
+        list.forEach(function (it) { social.push({ src: src, v: it }); });
+        renderGrid(src, list);
+      });
       renderSite(site);
-      renderFeed(posts, ig);
+      renderFeed(posts, social);
       renderPosts(posts);
-      renderGrid(ig);
       renderActivity(act);
     });
 
+  function handleOf(site, key) { return String(site[key] || '').replace(/[^\w.]/g, ''); }
+
   function renderSite(site) {
-    var handle = String(site.instagram || '').replace(/[^\w.]/g, '');
-    var follow = $('#ig-follow');
-    if (follow && handle) { follow.href = 'https://www.instagram.com/' + handle + '/'; follow.textContent = 'Seguir a @' + handle; follow.hidden = false; }
-    var box = $('#socials');
     var items = [];
-    if (handle) items.push({ label: 'Instagram', url: 'https://www.instagram.com/' + handle + '/' });
+    SOURCES.forEach(function (src) {
+      var h = handleOf(site, src.key);
+      var f = $(src.follow);
+      if (h) {
+        if (f) { f.href = src.profile(h); f.textContent = 'Seguir a @' + h; f.hidden = false; }
+        items.push({ label: src.label, url: src.profile(h) });
+      }
+    });
     (site.links || []).forEach(function (l) { if (l && l.label && /^https:\/\//.test(l.url || '')) items.push(l); });
+    var box = $('#socials');
     if (box) items.forEach(function (l) {
       box.appendChild(el('span', 'sep', '·'));
       var a = el('a', null, l.label); a.href = l.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
@@ -122,31 +141,31 @@
     return a;
   }
 
-  function igItem(it, i) {
+  function socialItem(src, it, i) {
     var url = safeUrl(it.url), img = safeUrl(it.image);
     var n = url ? el('a', 'item ig') : el('div', 'item ig');
     if (url) { n.href = url; n.target = '_blank'; n.rel = 'noopener noreferrer'; }
     n.style.setProperty('--i', Math.min(i, 8));
     var text = el('div');
-    text.appendChild(meta('Instagram', it.date, '', it.sample));
+    text.appendChild(meta(src.label, it.date, '', it.sample));
     text.appendChild(el('p', 'cap', it.caption || ''));
     n.appendChild(text);
     var th = el('div', 'thumb');
     if (img) { var im = el('img'); im.src = img; im.alt = ''; im.loading = 'lazy'; th.appendChild(im); }
-    else th.innerHTML = IG_ICON;
+    else th.innerHTML = src.icon;
     n.appendChild(th);
     return n;
   }
 
-  // "Todo": entradas del blog y publicaciones mezcladas por fecha
-  function renderFeed(posts, ig) {
+  // "Todo": entradas del blog y publicaciones de todas las redes, mezcladas por fecha
+  function renderFeed(posts, social) {
     all.replaceChildren();
     var items = posts.map(function (p) { return { t: 'blog', d: p.date, v: p }; })
-      .concat(ig.map(function (x) { return { t: 'ig', d: x.date, v: x }; }));
+      .concat(social.map(function (x) { return { t: 'social', d: x.v.date, v: x.v, src: x.src }; }));
     items.sort(function (a, b) { return String(b.d).localeCompare(String(a.d)); });
     if (!items.length) { all.appendChild(el('p', 'empty', 'Aquí aparecerán mis entradas y publicaciones.')); return; }
     items.forEach(function (it, i) {
-      all.appendChild(it.t === 'blog' ? blogItem(it.v, i, i === 0) : igItem(it.v, i));
+      all.appendChild(it.t === 'blog' ? blogItem(it.v, i, i === 0) : socialItem(it.src, it.v, i));
     });
   }
 
@@ -156,10 +175,11 @@
     posts.forEach(function (p, i) { box.appendChild(blogItem(p, i, false)); });
   }
 
-  function renderGrid(ig) {
-    var box = $('#grid'); box.replaceChildren();
-    if (!ig.length) { box.appendChild(el('p', 'empty', 'Aquí aparecerán mis publicaciones de Instagram.')); return; }
-    ig.forEach(function (it, i) {
+  function renderGrid(src, list) {
+    var box = $(src.grid); if (!box) return;
+    box.replaceChildren();
+    if (!list.length) { box.appendChild(el('p', 'empty', 'Aquí aparecerán mis publicaciones de ' + src.label + '.')); return; }
+    list.forEach(function (it, i) {
       var url = safeUrl(it.url), img = safeUrl(it.image);
       var t = url ? el('a', 'tile') : el('div', 'tile');
       if (url) { t.href = url; t.target = '_blank'; t.rel = 'noopener noreferrer'; }

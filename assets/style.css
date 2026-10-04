@@ -2,20 +2,20 @@
    debajo píldoras que cambian la vista (Todo, Blog, Instagram, Actividad, Sobre mí),
    y al final un bloque fijo con el proyecto AGENTE OS, el contacto y la firma. */
 :root {
-  --bg: #f7f3ec;
-  --bg2: #efe8dc;
-  --card: #fbf9f4;
+  --bg: #ffffff;
+  --bg2: #ffffff;
+  --card: #faf9f6;
   --ink: #26231e;
   --muted: #5f594f;
   --tan: #9d937c;
-  --rule: #ddd5c4;
+  --rule: #e6e2d8;
   --accent: #a23c30;
   --accent-ink: #ffffff;
-  --pill: #efe1d9;
-  --t1: #efe5d3;
-  --t2: #ecd9d0;
-  --t3: #e4e0cd;
-  --t4: #e6dde3;
+  --pill: #f7ebe6;
+  --t1: #f4eee2;
+  --t2: #f5e4dd;
+  --t3: #ecebdf;
+  --t4: #eee8ee;
   --col: 700px;
   --ease: cubic-bezier(.22, .8, .24, 1);
   --serif: Georgia, Gelasio, "Times New Roman", serif;
@@ -38,15 +38,6 @@
   --t4: #2b2330;
   color-scheme: dark;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #1b1815; --bg2: #14120f; --card: #211d19; --ink: #efe9de; --muted: #b3ab9b;
-    --tan: #8c8472; --rule: #342f27; --accent: #e0806e; --accent-ink: #1b1815; --pill: #3a2622;
-    --t1: #2a241c; --t2: #33231f; --t3: #25271d; --t4: #2b2330;
-    color-scheme: dark;
-  }
-}
-
 @view-transition { navigation: auto; }
 
 * { box-sizing: border-box; }
