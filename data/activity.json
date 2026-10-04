@@ -1,7 +1,37 @@
 [
-  { "sample": true, "date": "2026-10-04", "type": "Blog", "text": "publiqué una entrada nueva en el blog.", "url": "blog.html#bienvenida" },
-  { "sample": true, "date": "2026-10-02", "type": "Instagram", "text": "nuevo video sobre una sentencia reciente.", "url": "" },
-  { "sample": true, "date": "2026-09-29", "type": "Lectura", "text": "terminé un libro de teoría del proceso y dejé mis notas.", "url": "" },
-  { "sample": true, "date": "2026-09-26", "type": "Proyecto", "text": "avance en AGENTE OS, mi herramienta para organizar tareas.", "url": "#proyecto" },
-  { "sample": true, "date": "2026-09-20", "type": "Audiencia", "text": "una audiencia que dejó una idea para el próximo contenido.", "url": "" }
+  {
+    "sample": true,
+    "date": "2026-10-04",
+    "type": "Blog",
+    "text": "Publiqué una entrada nueva en el blog.",
+    "url": "blog.html#bienvenida"
+  },
+  {
+    "sample": true,
+    "date": "2026-10-02",
+    "type": "Instagram",
+    "text": "Nuevo video sobre una sentencia reciente.",
+    "url": ""
+  },
+  {
+    "sample": true,
+    "date": "2026-09-29",
+    "type": "Lectura",
+    "text": "Terminé un libro de teoría del proceso y dejé mis notas.",
+    "url": ""
+  },
+  {
+    "sample": true,
+    "date": "2026-09-26",
+    "type": "Proyecto",
+    "text": "Avance en AGENTE OS, mi herramienta para organizar tareas.",
+    "url": "#proyecto"
+  },
+  {
+    "sample": true,
+    "date": "2026-09-20",
+    "type": "Audiencia",
+    "text": "Una audiencia que dejó una idea para el próximo contenido.",
+    "url": ""
+  }
 ]

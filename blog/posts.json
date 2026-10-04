@@ -4,7 +4,10 @@
     "title": "Por qué empiezo este blog",
     "date": "2026-10-04",
     "summary": "Texto de ejemplo para mostrar cómo se ve una entrada. Reemplázalo por tu primera publicación.",
-    "tags": ["Personal"],
-    "sample": true
+    "tags": [
+      "Personal"
+    ],
+    "sample": true,
+    "minutes": 1
   }
 ]

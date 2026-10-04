@@ -49,8 +49,7 @@
   }
 
   function fail(msg) {
-    host.replaceChildren(el('a', 'back', '← Volver al blog'), el('p', 'notice', msg));
-    host.firstChild.href = 'index.html#blog';
+    host.replaceChildren(el('p', 'notice', msg));
     document.title = 'Entrada no encontrada — Rolando Hidalgo';
   }
 
@@ -64,7 +63,6 @@
       var meta = (r[0] || []).filter(function (p) { return p.slug === slug; })[0] || { title: slug };
       var text = r[1], words = text.split(/\s+/).length;
       document.title = meta.title + ' — Rolando Hidalgo';
-      var back = el('a', 'back', '← Volver al blog'); back.href = 'index.html#blog';
       var h1 = el('h1', null, meta.title);
       var by = el('div', 'byline');
       by.appendChild(el('time', null, fdate(meta.date)));
@@ -72,7 +70,7 @@
       (meta.tags || []).forEach(function (t) { by.appendChild(el('span', 'chip', t)); });
       if (meta.sample) by.appendChild(el('span', 'chip', 'Ejemplo'));
       var body = el('div', 'md'); body.innerHTML = markdown(text);
-      host.replaceChildren(back, h1, by, body);
+      host.replaceChildren(h1, by, body);
       window.scrollTo(0, 0);
     }).catch(function () { fail('Esa entrada no existe o no se pudo cargar.'); });
   }

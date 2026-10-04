@@ -1,8 +1,6 @@
 (function () {
   var root = document.documentElement;
-  root.classList.add('js');
 
-  // ---------- utilidades ----------
   function $(s, c) { return (c || document).querySelector(s); }
   function el(tag, cls, text) {
     var n = document.createElement(tag);
@@ -21,27 +19,13 @@
     if (p.length !== 3) return '';
     return fmt.format(new Date(+p[0], +p[1] - 1, +p[2])).replace('.', '');
   }
-  // Solo enlaces seguros: https, mailto o rutas del propio sitio
+  // Solo enlaces seguros: https, mailto, anclas o rutas del propio sitio
   function safeUrl(u) {
     u = String(u || '');
-    return /^(https:\/\/|mailto:|#|[a-z0-9_\-\/.]+(\.html)?(#[\w-]+)?$)/i.test(u) ? u : '';
+    return /^(https:\/\/|mailto:|#|[a-z0-9_\-\/.]+(#[\w-]+)?$)/i.test(u) ? u : '';
   }
-  var io = null;
-  if ('IntersectionObserver' in window) {
-    io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) {
-        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
-      });
-    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
-  }
-  function reveal(node, delay) {
-    node.classList.add('reveal');
-    if (delay) node.style.setProperty('--d', delay + 's');
-    if (io) io.observe(node); else node.classList.add('in');
-  }
-  function revealAll(scope) { (scope || document).querySelectorAll('.reveal:not(.in)').forEach(function (n) { if (io) io.observe(n); else n.classList.add('in'); }); }
 
-  // ---------- tema ----------
+  // ---------- tema y año (todas las páginas) ----------
   var key = 'theme';
   try { var saved = localStorage.getItem(key); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
   var btn = $('#theme');
@@ -54,143 +38,158 @@
   });
   var year = $('#year'); if (year) year.textContent = new Date().getFullYear();
 
-  // ---------- scroll: progreso, nav, sección activa ----------
-  var bar = $('#progress'), nav = $('#nav'), ticking = false;
-  function onScroll() {
-    var y = window.scrollY, max = root.scrollHeight - window.innerHeight;
-    if (bar) bar.style.transform = 'scaleX(' + (max > 0 ? y / max : 0) + ')';
-    if (nav) nav.classList.toggle('scrolled', y > 12);
-    ticking = false;
+  // ---------- portada ----------
+  var all = $('#all');
+  if (!all) return;
+
+  var IG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>';
+
+  // Pestañas: cada píldora muestra una vista; la URL (#blog, #instagram…) la recuerda
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  var views = {};
+  tabs.forEach(function (t) { views[t.dataset.view] = document.getElementById('v-' + t.dataset.view); });
+  var current = null;
+  function show(id, scroll) {
+    if (!views[id]) id = 'todo';
+    if (id === current) return;
+    current = id;
+    tabs.forEach(function (t) {
+      var on = t.dataset.view === id;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (on) t.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    });
+    Object.keys(views).forEach(function (k) {
+      var v = views[k]; if (!v) return;
+      var on = k === id;
+      v.hidden = !on;
+      v.classList.remove('show');
+      if (on) { void v.offsetWidth; v.classList.add('show'); }
+    });
+    if (scroll) {
+      var bar = $('.tabs-bar'), top = bar.getBoundingClientRect().top + window.scrollY - bar.offsetHeight + 4;
+      var hero = $('.hero').getBoundingClientRect().bottom + window.scrollY;
+      if (window.scrollY > hero) window.scrollTo({ top: Math.max(0, hero - 1), behavior: 'smooth' });
+    }
   }
-  window.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
-  onScroll();
-
-  var links = document.querySelectorAll('a[data-spy]'), map = {};
-  links.forEach(function (a) { map[a.getAttribute('href').slice(1)] = a; });
-  if ('IntersectionObserver' in window && links.length) {
-    var spy = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) {
-        if (e.isIntersecting && map[e.target.id]) {
-          links.forEach(function (a) { a.classList.remove('active'); });
-          map[e.target.id].classList.add('active');
-        }
-      });
-    }, { rootMargin: '-45% 0px -50% 0px' });
-    Object.keys(map).forEach(function (id) { var s = document.getElementById(id); if (s) spy.observe(s); });
-  }
-
-  document.querySelectorAll('.reveal').forEach(function (n) { if (io) io.observe(n); else n.classList.add('in'); });
-
-  // ---------- contenido (solo en la portada) ----------
-  var reel = $('#reel');
-  if (!reel) return;
+  function fromHash() { return decodeURIComponent(location.hash.slice(1)) || 'todo'; }
+  window.addEventListener('hashchange', function () { show(fromHash(), true); });
+  show(fromHash(), false);
 
   Promise.all([getJSON('data/site.json'), getJSON('data/instagram.json'), getJSON('data/activity.json'), getJSON('blog/posts.json')])
     .then(function (r) {
-      var site = r[0] || {}, ig = r[1] || [], act = r[2] || [], posts = r[3] || [];
-      byDateDesc(ig); byDateDesc(act); byDateDesc(posts);
-      renderSite(site); renderInstagram(site, ig); renderActivity(act); renderPosts(posts);
-      renderNow(act);
-      revealAll();
+      var site = r[0] || {}, ig = r[1] || [], act = r[2] || [], posts = (r[3] || []).filter(function (p) { return /^[a-z0-9-]+$/.test(p.slug || ''); });
+      [ig, act, posts].forEach(function (a) { a.sort(function (x, y) { return String(y.date).localeCompare(String(x.date)); }); });
+      renderSite(site);
+      renderFeed(posts, ig);
+      renderPosts(posts);
+      renderGrid(ig);
+      renderActivity(act);
     });
-
-  function byDateDesc(a) { a.sort(function (x, y) { return String(y.date).localeCompare(String(x.date)); }); }
 
   function renderSite(site) {
     var handle = String(site.instagram || '').replace(/[^\w.]/g, '');
     var follow = $('#ig-follow');
-    if (follow) {
-      if (handle) { follow.href = 'https://www.instagram.com/' + handle + '/'; follow.textContent = 'Seguir @' + handle + ' →'; follow.hidden = false; }
-    }
+    if (follow && handle) { follow.href = 'https://www.instagram.com/' + handle + '/'; follow.textContent = 'Seguir a @' + handle; follow.hidden = false; }
     var box = $('#socials');
-    if (box) {
-      var items = [];
-      if (handle) items.push({ label: 'Instagram', url: 'https://www.instagram.com/' + handle + '/' });
-      (site.links || []).forEach(function (l) { if (l && l.label && safeUrl(l.url)) items.push(l); });
-      items.forEach(function (l) {
-        var a = el('a', 'btn', l.label); a.href = l.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
-        box.appendChild(a);
-      });
-    }
-    if (site.email) {
-      var m = $('#mail'); if (m) { m.textContent = site.email; m.href = 'mailto:' + site.email; }
-    }
+    var items = [];
+    if (handle) items.push({ label: 'Instagram', url: 'https://www.instagram.com/' + handle + '/' });
+    (site.links || []).forEach(function (l) { if (l && l.label && /^https:\/\//.test(l.url || '')) items.push(l); });
+    if (box) items.forEach(function (l) {
+      box.appendChild(el('span', 'sep', '·'));
+      var a = el('a', null, l.label); a.href = l.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      box.appendChild(a);
+    });
+    if (site.email) { var m = $('#mail'); if (m) { m.textContent = site.email; m.href = 'mailto:' + site.email; } }
   }
 
-  function renderNow(act) {
-    var box = $('#now'); if (!box || !act.length) return;
-    var a = act[0];
-    var node = a.url && safeUrl(a.url) ? el('a', 'now') : el('div', 'now');
-    if (node.tagName === 'A') node.href = safeUrl(a.url);
-    node.appendChild(el('span', 'pulse'));
-    node.appendChild(el('b', null, a.type || 'Reciente'));
-    node.appendChild(el('span', 't', a.text));
-    box.replaceChildren(node);
+  function meta(kind, date, extra, sample) {
+    var m = el('p', 'meta');
+    m.appendChild(el('span', 'kind', kind));
+    if (date) m.appendChild(el('span', null, fdate(date)));
+    if (extra) m.appendChild(el('span', null, extra));
+    if (sample) m.appendChild(el('span', 'chip', 'Ejemplo'));
+    return m;
   }
 
-  function renderInstagram(site, items) {
-    reel.replaceChildren();
-    if (!items.length) { reel.appendChild(el('p', 'empty', 'Aquí aparecerán mis publicaciones de Instagram.')); return; }
+  function blogItem(p, i, lead) {
+    var a = el('a', 'item blog' + (lead ? ' lead' : ''));
+    a.href = 'blog.html#' + p.slug;
+    a.style.setProperty('--i', Math.min(i, 8));
+    a.appendChild(meta('Blog', p.date, p.minutes ? p.minutes + ' min de lectura' : '', p.sample));
+    a.appendChild(el('h3', null, p.title));
+    if (p.summary) a.appendChild(el('p', 'sum', p.summary));
+    a.appendChild(el('span', 'go', 'Leer entrada'));
+    return a;
+  }
+
+  function igItem(it, i) {
+    var url = safeUrl(it.url), img = safeUrl(it.image);
+    var n = url ? el('a', 'item ig') : el('div', 'item ig');
+    if (url) { n.href = url; n.target = '_blank'; n.rel = 'noopener noreferrer'; }
+    n.style.setProperty('--i', Math.min(i, 8));
+    var text = el('div');
+    text.appendChild(meta('Instagram', it.date, '', it.sample));
+    text.appendChild(el('p', 'cap', it.caption || ''));
+    n.appendChild(text);
+    var th = el('div', 'thumb');
+    if (img) { var im = el('img'); im.src = img; im.alt = ''; im.loading = 'lazy'; th.appendChild(im); }
+    else th.innerHTML = IG_ICON;
+    n.appendChild(th);
+    return n;
+  }
+
+  // "Todo": entradas del blog y publicaciones mezcladas por fecha
+  function renderFeed(posts, ig) {
+    all.replaceChildren();
+    var items = posts.map(function (p) { return { t: 'blog', d: p.date, v: p }; })
+      .concat(ig.map(function (x) { return { t: 'ig', d: x.date, v: x }; }));
+    items.sort(function (a, b) { return String(b.d).localeCompare(String(a.d)); });
+    if (!items.length) { all.appendChild(el('p', 'empty', 'Aquí aparecerán mis entradas y publicaciones.')); return; }
     items.forEach(function (it, i) {
+      all.appendChild(it.t === 'blog' ? blogItem(it.v, i, i === 0) : igItem(it.v, i));
+    });
+  }
+
+  function renderPosts(posts) {
+    var box = $('#posts'); box.replaceChildren();
+    if (!posts.length) { box.appendChild(el('p', 'empty', 'Aquí aparecerán mis entradas del blog.')); return; }
+    posts.forEach(function (p, i) { box.appendChild(blogItem(p, i, false)); });
+  }
+
+  function renderGrid(ig) {
+    var box = $('#grid'); box.replaceChildren();
+    if (!ig.length) { box.appendChild(el('p', 'empty', 'Aquí aparecerán mis publicaciones de Instagram.')); return; }
+    ig.forEach(function (it, i) {
       var url = safeUrl(it.url), img = safeUrl(it.image);
       var t = url ? el('a', 'tile') : el('div', 'tile');
       if (url) { t.href = url; t.target = '_blank'; t.rel = 'noopener noreferrer'; }
+      t.style.setProperty('--i', Math.min(i, 10));
       if (img) { t.classList.add('has-img'); var im = el('img'); im.src = img; im.alt = ''; im.loading = 'lazy'; t.appendChild(im); }
-      var top = el('div', 'top');
-      if (it.sample) top.appendChild(el('span', 'chip', 'Ejemplo'));
+      var top = el('div', 'top'); if (it.sample) top.appendChild(el('span', 'chip', 'Ejemplo'));
       t.appendChild(top);
       t.appendChild(el('p', 'cap', it.caption || ''));
-      var meta = el('div', 'meta');
-      meta.appendChild(el('span', null, fdate(it.date)));
-      if (url) meta.appendChild(el('span', null, 'Ver en Instagram ↗'));
-      t.appendChild(meta);
-      reveal(t, Math.min(i, 5) * 0.06);
-      reel.appendChild(t);
+      var foot = el('div', 'foot');
+      foot.appendChild(el('span', null, fdate(it.date)));
+      if (url) foot.appendChild(el('span', null, 'Ver ↗'));
+      t.appendChild(foot);
+      box.appendChild(t);
     });
-    var step = function (dir) { return function () { reel.scrollBy({ left: dir * Math.max(240, reel.clientWidth * 0.7), behavior: 'smooth' }); }; };
-    var prev = $('#reel-prev'), next = $('#reel-next');
-    if (prev) prev.onclick = step(-1);
-    if (next) next.onclick = step(1);
   }
 
-  function renderActivity(items) {
-    var ul = $('#feed'); if (!ul) return;
-    ul.replaceChildren();
-    if (!items.length) { ul.appendChild(el('li', 'empty', 'Aquí aparecerá mi actividad reciente.')); return; }
-    items.slice(0, 8).forEach(function (a, i) {
-      var li = el('li');
+  function renderActivity(act) {
+    var box = $('#activity'); box.replaceChildren();
+    if (!act.length) { box.appendChild(el('p', 'empty', 'Aquí aparecerá mi actividad reciente.')); return; }
+    act.slice(0, 12).forEach(function (a, i) {
+      var row = el('div', 'row'); row.style.setProperty('--i', Math.min(i, 10));
       var time = el('time', null, fdate(a.date)); time.setAttribute('datetime', a.date);
-      li.appendChild(time);
-      var body = el('div', 'body');
-      body.appendChild(el('span', 'chip', a.type || 'Nota'));
-      if (a.sample) body.appendChild(el('span', 'chip', 'Ejemplo'));
-      body.appendChild(el('p', null, a.text));
+      row.appendChild(time);
+      var p = el('p');
+      p.appendChild(el('span', 'kind', a.type || 'Nota'));
+      p.appendChild(document.createTextNode(a.text || ''));
       var u = safeUrl(a.url);
-      if (u) { var l = el('a', null, 'Ver →'); l.href = u; if (/^https:/.test(u)) { l.target = '_blank'; l.rel = 'noopener noreferrer'; } body.appendChild(l); }
-      li.appendChild(body);
-      reveal(li, Math.min(i, 4) * 0.05);
-      ul.appendChild(li);
-    });
-  }
-
-  function renderPosts(items) {
-    var ul = $('#posts'); if (!ul) return;
-    ul.replaceChildren();
-    if (!items.length) { ul.appendChild(el('li', 'empty', 'Aquí aparecerán mis entradas del blog.')); return; }
-    items.forEach(function (p, i) {
-      if (!/^[a-z0-9-]+$/.test(p.slug || '')) return;
-      var li = el('li');
-      var a = el('a', 'post-row'); a.href = 'blog.html#' + p.slug;
-      var time = el('time', null, fdate(p.date)); time.setAttribute('datetime', p.date);
-      a.appendChild(time);
-      var mid = el('div');
-      mid.appendChild(el('h3', null, p.title));
-      mid.appendChild(el('p', null, p.summary || ''));
-      a.appendChild(mid);
-      a.appendChild(el('span', 'rt', (p.tags && p.tags[0]) ? p.tags[0] : 'Leer →'));
-      li.appendChild(a);
-      reveal(li, Math.min(i, 4) * 0.05);
-      ul.appendChild(li);
+      if (u) { var l = el('a', 'go', 'Ver'); l.href = u; if (/^https:/.test(u)) { l.target = '_blank'; l.rel = 'noopener noreferrer'; } p.appendChild(l); }
+      row.appendChild(p);
+      box.appendChild(row);
     });
   }
 })();
