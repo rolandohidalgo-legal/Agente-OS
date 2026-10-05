@@ -61,6 +61,10 @@
   var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var PAD = 24;
   var current = null, selected = tabs[0], peekTab = null, leaveT = null, hoverMouse = false, capT = null, wheel = false;
+  var dwellT = null, px = 0, gate = null;
+  var DWELL = 140;                    // ms que el puntero debe quedarse sobre una opción para que la rueda la centre
+  var EDGE = 6;                       // tolerancia (px) alrededor de cada píldora, solo si el puntero no está sobre ninguna
+  var MOVE = 3;                       // movimiento mínimo (px) para cambiar de opción justo después de girar la rueda
   var sentinel = $('#tabs-sentinel'), tbar = $('#tabs-bar');
 
   // Al bajar, la barra se compacta: se oculta la leyenda y se afinan los márgenes
@@ -85,7 +89,10 @@
   function align(t, instant) {
     if (wheel) {
       if (!t) { trackEl.style.transform = ''; return; }
-      var c = PAD + (tabs.indexOf(t) + 0.5) * slotW();
+      // Tras girar, el puntero puede quedar sobre otra píldora: se ignora el temblor mínimo del mouse
+      // hasta que haya un movimiento real, para que la rueda no siga girando sola.
+      if (hoverMouse) gate = px;
+      var c = t.offsetLeft + t.offsetWidth / 2;
       trackEl.style.transform = 'translateX(' + (tabsEl.clientWidth / 2 - c) + 'px)';
     } else if (t) {
       var left = t.offsetLeft + t.offsetWidth / 2 - tabsEl.clientWidth / 2;
@@ -105,30 +112,52 @@
     if (center) align(t);
   }
   function rest() {
+    clearTimeout(dwellT); gate = null;
     peekTab = null; markPeek();
     setCaption(selected.dataset.caption);
     align(wheel ? null : selected);
   }
 
+  // Píldora que realmente se ve bajo el puntero. Gana la que lo contiene; la tolerancia solo se usa si no hay ninguna.
+  function pillAt(x) {
+    var bar = tabsEl.getBoundingClientRect(), inside = null, id = Infinity, near = null, nd = Infinity;
+    tabs.forEach(function (t) {
+      var r = t.getBoundingClientRect();
+      if (r.right < bar.left || r.left > bar.right) return;                 // fuera de la barra
+      var c = Math.abs(x - (r.left + r.right) / 2);
+      if (x >= r.left && x <= r.right) { if (c < id) { id = c; inside = t; } }
+      else if (x >= r.left - EDGE && x <= r.right + EDGE) { if (c < nd) { nd = c; near = t; } }
+    });
+    return inside || near;
+  }
+  function isCentered(t) {
+    var bar = tabsEl.getBoundingClientRect(), r = t.getBoundingClientRect();
+    return Math.abs((r.left + r.right) / 2 - (bar.left + bar.right) / 2) < 3;
+  }
   tabsEl.addEventListener('pointerenter', function (e) {
     if (e.pointerType !== 'mouse') return;
-    hoverMouse = true; clearTimeout(leaveT);
+    hoverMouse = true; clearTimeout(leaveT); gate = null;
   });
   tabsEl.addEventListener('pointermove', function (e) {
     if (e.pointerType !== 'mouse') return;
-    var t;
-    if (wheel) {
-      var r = tabsEl.getBoundingClientRect();
-      var i = Math.floor((e.clientX - r.left - PAD) / slotW());
-      t = tabs[Math.max(0, Math.min(tabs.length - 1, i))];
-    } else {
-      t = e.target.closest ? e.target.closest('.tab') : null;
+    px = e.clientX;
+    if (!wheel) {
+      var h = e.target.closest ? e.target.closest('.tab') : null;
+      if (h && h !== peekTab) peek(h, false);
+      return;
     }
-    if (t && t !== peekTab) peek(t, wheel);
+    if (gate !== null) { if (Math.abs(px - gate) < MOVE) return; gate = null; }
+    var t = pillAt(px);
+    if (!t) return;                                  // zona vacía: se mantiene la opción actual
+    if (t !== peekTab) peek(t, false);               // vista previa inmediata (descripción y resalte)
+    clearTimeout(dwellT);
+    if (!isCentered(t)) {                            // la rueda gira solo si el puntero se queda un momento
+      dwellT = setTimeout(function () { if (peekTab === t && hoverMouse && !isCentered(t)) align(t); }, DWELL);
+    }
   });
   tabsEl.addEventListener('pointerleave', function (e) {
     if (e.pointerType !== 'mouse') return;
-    hoverMouse = false;
+    hoverMouse = false; clearTimeout(dwellT); gate = null;
     leaveT = setTimeout(rest, 160);
   });
   tabsEl.addEventListener('focusin', function (e) {
